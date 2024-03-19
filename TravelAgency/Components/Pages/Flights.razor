@@ -1,0 +1,324 @@
+﻿@page "/Flights"
+
+<h3>Flight Management</h3>
+
+<body>
+        <h4> Flights finder</h4>
+        <div class="finder-container">
+            <label for="origin">From:</label>
+            <select @onchange="GetTo">
+                <option>Select Origin</option>
+                @foreach (AirportClass obj in AirportObjList)
+                {
+                    <option value="@obj.AirportCode">@obj.AirportCode</option>
+                }
+            </select>
+
+            <label for="destination">To:</label>
+            <select @onchange="GetFrom">
+                <option>Select Destination</option>
+                @foreach (AirportClass obj in AirportObjList)
+                {
+                    <option value="@obj.AirportCode">@obj.AirportCode</option>
+                }
+            </select>
+  
+            <label for="dayOfWeek">Day:</label>
+            <select @onchange="GetDay">
+                <option>Select Day</option>
+                @foreach (String day in daysofWeek)
+                {
+                    <option value="@day">@day</option>
+                }
+            </select>
+            
+            <button class="btn1" @onclick="FindFlights">Find Flights</button>
+        </div>
+    
+    <p class="FoundResults">@foundFlight</p>
+    @if (MatchingFlights.Count == 0)
+    {
+        <p class=" error">@findErrorMessage</p>
+    }
+    else{<br />}
+    <div>
+        <h3>Flights</h3>
+        <select @onchange="GetFlight">
+            <option> Select </option>
+            @foreach (Flight flight in MatchingFlights)
+            {
+                <option value="@flight.FlightNumber">@flight.ToString()</option>
+            }
+        </select>
+    </div>
+
+    <section id="reserve-container">
+        <h4>Reserve</h4>
+        <div>
+            <label for="textreserve">Flight code:</label>
+            <input type="text" id="textreserve" name="textbox" placeholder="Flights">
+        </div>
+        <div>
+            <label for="textreserve">Airline:</label>
+            <input type="text" id="textreserve" name="textbox" placeholder="Flights">
+        </div>
+        <div>
+            <label for="textreserve">Day:</label>
+            <input type="text" id="textreserve" name="textbox" placeholder="Flights">
+        </div>
+        <div>
+            <label for="textreserve">Time:</label>
+            <input type="text"  placeholder="Flights">
+        </div>
+        <div>
+            <label for="textreserve">Cost:</label>
+            <input type="text"  placeholder="Flights">
+        </div>
+        <div>
+            <label for="textreserve">Name:</label>
+            <input type="text" @bind="name" placeholder="Flights">
+        </div>
+        <div>
+            <label>Citizenship :</label>
+            <input type="text" @bind="citizenship" placeholder="Flights">
+        </div>
+        <div>
+            <button class="reserve_btn" @onclick="MakingReservation">Reserve</button>
+        </div>
+        <div>
+            <p>@errorMessage</p>
+            <label>Reservation code: @reservationID</label>
+        </div>
+        
+    </section>
+    <section id="search-container">
+        <h4>Search</h4>
+        <div>
+            <label>Code:</label>
+            <input type="text" @bind="searchCode">
+        </div>
+        <div>
+            <label for="textreserve">Airline:</label>
+            <input type="text" @bind="searchAirline">
+        </div>
+        <div>
+            <label for="textreserve">Name:</label>
+            <input type="text" @bind="searchName">
+        </div>
+        <button class="reservation_btn" @onclick="() => FindReservation(searchCode,searchAirline,searchName)">Find Reservations</button>
+    </section>
+    <section id="reservations-results-container">
+        <h4>Reservations</h4>
+        <select @onchange="GetFlight">
+            <option> Select </option>
+            @foreach (ReservationManager flight in matchingReservObjList)
+            {
+                <option value="@flight.FlightNumber">@flight.ToString()</option>
+            }
+        </select>
+    </section>
+
+</body>
+
+@code {
+    public string FindFrom;
+    public string FindTo;
+    public string FindDay;
+    public string name;
+    public string citizenship;
+    public string reservationID = "";
+    public string searchCode;
+    public string findErrorMessage;
+    public string searchAirline;
+    public string foundFlight;
+    public string searchName;
+    public string errorMessage;
+    public string foundResvation;
+
+    Flight selectedFlight = new Flight("", "", "", "", "", "", "", "");
+
+    public List<Flight> FlightObjList = new List<Flight>();
+    public List<AirportClass> AirportObjList = new List<AirportClass>();
+    public List<ReservationManager> reservationObjList = new List<ReservationManager>();
+    public List<ReservationManager> matchingReservObjList = new List<ReservationManager>();
+    public List<Flight> MatchingFlights = new List<Flight>();
+
+    public List<string> daysofWeek = new List<string>
+    {
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+    };
+
+    public void LoadFlightsFromFile()
+    {
+        string FLIGHTS_TXT = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "C:\\Software Development Semester 2\\Object Oriented Programming 2\\Assignments\\Assignment 3 -\\TravelAgency\\TravelAgency\\Resources\\Flights\\flights.txt");
+        // This function will read the data and perform operations
+        string[] lines = File.ReadAllLines(FLIGHTS_TXT);
+        foreach (string line in File.ReadAllLines(FLIGHTS_TXT))
+        {
+            string[] parts = line.Split(',');
+            string origin = parts[2];
+            string destination = parts[3];
+            string dayofweek = parts[4];
+            string flightNumber = parts[0];
+            string airlinename = parts[1];
+            string flightTime = parts[5];
+            string flightCost = parts[6];
+            string flightDistance = parts[7];
+
+            new Flight(origin, destination, dayofweek, flightNumber, airlinename, flightTime, flightCost, flightDistance);
+            FlightObjList.Add(new Flight(origin, destination, dayofweek, flightNumber, airlinename, flightTime, flightCost, flightDistance));
+        }
+    }
+
+    public void LoadAirportsFromFile()
+    {
+        string AIRPORTS_TXT = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "C:\\Software Development Semester 2\\Object Oriented Programming 2\\Assignments\\Assignment 3 -\\TravelAgency\\TravelAgency\\Resources\\Airports\\airports.txt");
+
+        string[] lines = File.ReadAllLines(AIRPORTS_TXT);
+        foreach (string line in File.ReadAllLines(AIRPORTS_TXT))
+        {
+            string[] parts = line.Split(',');
+            string AirportCode = parts[0];
+            string AirportName = parts[1];
+
+            new AirportClass(AirportCode, AirportName);
+            AirportObjList.Add(new AirportClass(AirportCode, AirportName));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        LoadFlightsFromFile();
+        LoadAirportsFromFile();
+    }
+
+    private void GetFrom(ChangeEventArgs e)
+    {
+        FindFrom = e.Value.ToString();
+    }
+
+    private void GetTo(ChangeEventArgs e)
+    {
+        FindTo = e.Value.ToString();
+    }
+
+    private void GetDay(ChangeEventArgs e)
+    {
+        FindDay = e.Value.ToString();
+    }
+
+    public void MakingReservation()
+    {
+        try
+        {
+            if (selectedFlight == null)
+            {
+                throw new ArgumentException("Please select a flight.");
+            }
+
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException("Please enter a traveler's name.");
+            }
+
+            if (string.IsNullOrEmpty(citizenship))
+            {
+                throw new ArgumentException("Please enter citizenship.");
+            }
+
+            errorMessage = "";
+            reservationID = GenerateReservCode();
+
+            ReservationManager newReservation = new ReservationManager(reservationID, selectedFlight.FlightNumber, name, citizenship, selectedFlight.DayOfWeek, selectedFlight.FlightTime, selectedFlight.FlightCost);
+            reservationObjList.Add(new ReservationManager(reservationID, selectedFlight.FlightNumber, name, citizenship, selectedFlight.DayOfWeek, selectedFlight.FlightTime, selectedFlight.FlightCost));
+            name = "";
+            citizenship = "";
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    public string GenerateReservCode()
+    {
+        Random random = new Random();
+        const string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string digits = "0123456789";
+
+        char letter1 = letters[random.Next(letters.Length)];
+
+        string digitsPart = "";
+        for (int i = 0; i < 4; i++)
+        {
+            digitsPart += digits[random.Next(digits.Length)];
+        }
+
+        string reservationCode = $"{letter1}{digitsPart}";
+        return reservationCode;
+    }
+
+    public void FindReservation(string searchCode = null , string searchAirline = null , string searchName = null )
+    {
+        matchingReservObjList.Clear();
+        foreach (ReservationManager reservation in reservationObjList)
+        {
+            if (reservation.ReservationCode == searchCode || reservation.AirlineName == searchAirline || reservation.Name == searchName)
+            {
+                matchingReservObjList.Add(reservation);
+                foundResvation = "Found!";
+                searchAirline = "";
+                searchName = "";
+
+            }
+        }
+    }
+    public void GetFlight(ChangeEventArgs e)
+    {
+        foreach (Flight flight in FlightObjList)
+        {
+            if (flight.FlightNumber == e.Value.ToString())
+            {
+                selectedFlight = flight;
+            }
+        }
+    }
+    public void FindFlights()
+    {
+        MatchingFlights.Clear();
+        try
+        {
+            if (string.IsNullOrEmpty(FindFrom) || string.IsNullOrEmpty(FindTo))
+            {
+                throw new ArgumentException("No selection has been made");
+            }
+            foreach (Flight flight in FlightObjList)
+            {
+                if (flight.Destination == (FindFrom.ToUpper()) && flight.Origin == (FindTo.ToUpper()))
+                {
+                    MatchingFlights.Add(flight);
+                    findErrorMessage = "";
+                    foundFlight = "Flight Found!";
+                }
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            findErrorMessage = ex.Message;
+        }
+    }
+
+
+    
+}
